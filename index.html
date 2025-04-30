@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ứng dụng đặt món</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background-color: #4CAF50;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            border-radius: 8px 8px 0 0;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+        }
+
+        .table-info {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-align: center;
+            padding: 10px;
+            background-color: #f0f8ff;
+            border-radius: 8px;
+            border: 1px solid #b0c4de;
+        }
+
+        .menu-section {
+            margin-bottom: 30px;
+            background-color: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+            .menu-section h2 {
+                border-bottom: 2px solid #4CAF50;
+                padding-bottom: 10px;
+                margin-bottom: 15px;
+                color: #4CAF50;
+            }
+
+        .menu-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+            .menu-item:last-child {
+                border-bottom: none;
+            }
+
+        .item-name {
+            font-weight: bold;
+        }
+
+        .item-price {
+            color: #e91e63;
+            font-weight: bold;
+        }
+
+        .item-description {
+            font-size: 0.9rem;
+            color: #666;
+            margin: 5px 0;
+        }
+
+        .quantity-controls {
+            display: flex;
+            align-items: center;
+        }
+
+        .quantity-btn {
+            background-color: #ddd;
+            border: none;
+            color: #333;
+            font-size: 1.2rem;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+            .quantity-btn:hover {
+                background-color: #bbb;
+            }
+
+        .quantity {
+            margin: 0 10px;
+            font-weight: bold;
+            min-width: 30px;
+            text-align: center;
+        }
+
+        .order-summary {
+            background-color: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+            .order-summary h2 {
+                border-bottom: 2px solid #4CAF50;
+                padding-bottom: 10px;
+                margin-bottom: 15px;
+                color: #4CAF50;
+            }
+
+        .order-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .total {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            font-size: 1.2rem;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 2px solid #eee;
+        }
+
+        .submit-order {
+            display: block;
+            width: 100%;
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+
+            .submit-order:hover {
+                background-color: #45a049;
+            }
+
+        .empty-order {
+            text-align: center;
+            color: #999;
+            padding: 20px;
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 20% auto;
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .modal-message {
+            margin-bottom: 20px;
+        }
+
+        .modal-btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Nhà hàng XYZ</h1>
+            <p>Chọn món ưa thích của bạn</p>
+        </header>
+
+        <div class="table-info" id="tableInfo">
+            Đang tải thông tin bàn...
+        </div>
+
+        <div class="menu-section">
+            <h2>Món khai vị</h2>
+            <div class="menu-item">
+                <div>
+                    <div class="item-name">Gỏi cuốn tôm thịt</div>
+                    <div class="item-description">Bánh tráng cuốn với tôm, thịt heo và rau thơm</div>
+                    <div class="item-price">45.000đ</div>
+                </div>
+                <div class="quantity-controls">
+                    <button class="quantity-btn" onclick="changeQuantity('appetizer1', -1)">-</button>
+                    <span class="quantity" id="appetizer1-qty">0</span>
+                    <button class="quantity-btn" onclick="changeQuantity('appetizer1', 1)">+</button>
+                </div>
+            </div>
+            <div class="menu-item">
+                <div>
+                    <div class="item-name">Chả giò</div>
+                    <div class="item-description">Chả giò giòn rụm nhân thịt và nấm</div>
+                    <div class="item-price">55.000đ</div>
+                </div>
+                <div class="quantity-controls">
+                    <button class="quantity-btn" onclick="changeQuantity('appetizer2', -1)">-</button>
+                    <span class="quantity" id="appetizer2-qty">0</span>
+                    <button class="quantity-btn" onclick="changeQuantity('appetizer2', 1)">+</button>
+                </div>
+            </div>
+            <div class="menu-item">
+                <div>
+                    <div class="item-name">Salad hải sản</div>
+                    <div class="item-description">Salad với tôm, mực và rau tươi</div>
+                    <div class="item-price">65.000đ</div>
+                </div>
+                <div class="quantity-controls">
+                    <button class="quantity-btn" onclick="changeQuantity('appetizer3', -1)">-</button>
+                    <span class="quantity" id="appetizer3-qty">0</span>
+                    <button class="quantity-btn" onclick="changeQuantity('appetizer3', 1)">+</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="menu-section">
+            <h2>Món chính</h2>
+            <div class="menu-item">
+                <div>
+                    <div class="item-name">Phở bò</div>
+                    <div class="item-description">Phở với nước dùng ngọt, thịt bò tái và chín</div>
+                    <div class="item-price">85.000đ</div>
+                </div>
+                <div class="quantity-controls">
+                    <button class="quantity-btn" onclick="changeQuantity('main1', -1)">-</button>
+                    <span class="quantity" id="main1-qty">0</span>
+                    <button class="quantity-btn" onclick="changeQuantity('main1', 1)">+</button>
+                </div>
+            </div>
+            <div class="menu-item">
+                <div>
+                    <div class="item-name">Cơm tấm sườn</div>
+                    <div class="item-description">Cơm tấm với sườn nướng, bì, chả và trứng</div>
+                    <div class="item-price">75.000đ</div>
+                </div>
+                <div class="quantity-controls">
+                    <button class="quantity-btn" onclick="changeQuantity('main2', -1)">-</button>
+                    <span class="quantity" id="main2-qty">0</span>
+                    <button class="quantity-btn" onclick="changeQuantity('main2', 1)">+</button>
+                </div>
+            </div>
+            <div class="menu-item">
+                <div>
+                    <div class="item-name">Bún chả</div>
+                    <div class="item-description">Bún với chả thịt nướng và nước chấm chua ngọt</div>
+                    <div class="item-price">70.000đ</div>
+                </div>
+                <div class="quantity-controls">
+                    <button class="quantity-btn" onclick="changeQuantity('main3', -1)">-</button>
+                    <span class="quantity" id="main3-qty">0</span>
+                    <button class="quantity-btn" onclick="changeQuantity('main3', 1)">+</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="menu-section">
+            <h2>Đồ uống</h2>
+            <div class="menu-item">
+                <div>
+                    <div class="item-name">Nước chanh tươi</div>
+                    <div class="item-description">Nước chanh tươi với đường và đá</div>
+                    <div class="item-price">25.000đ</div>
+                </div>
+                <div class="quantity-controls">
+                    <button class="quantity-btn" onclick="changeQuantity('drink1', -1)">-</button>
+                    <span class="quantity" id="drink1-qty">0</span>
+                    <button class="quantity-btn" onclick="changeQuantity('drink1', 1)">+</button>
+                </div>
+            </div>
+            <div class="menu-item">
+                <div>
+                    <div class="item-name">Sinh tố bơ</div>
+                    <div class="item-description">Sinh tố bơ mát lạnh</div>
+                    <div class="item-price">35.000đ</div>
+                </div>
+                <div class="quantity-controls">
+                    <button class="quantity-btn" onclick="changeQuantity('drink2', -1)">-</button>
+                    <span class="quantity" id="drink2-qty">0</span>
+                    <button class="quantity-btn" onclick="changeQuantity('drink2', 1)">+</button>
+                </div>
+            </div>
+            <div class="menu-item">
+                <div>
+                    <div class="item-name">Cà phê đen</div>
+                    <div class="item-description">Cà phê đen truyền thống</div>
+                    <div class="item-price">30.000đ</div>
+                </div>
+                <div class="quantity-controls">
+                    <button class="quantity-btn" onclick="changeQuantity('drink3', -1)">-</button>
+                    <span class="quantity" id="drink3-qty">0</span>
+                    <button class="quantity-btn" onclick="changeQuantity('drink3', 1)">+</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="order-summary" id="orderSummary">
+            <h2>Tóm tắt đơn hàng</h2>
+            <div id="orderItems">
+                <div class="empty-order">Bạn chưa chọn món nào</div>
+            </div>
+            <div class="total">
+                <span>Tổng cộng:</span>
+                <span id="totalAmount">0đ</span>
+            </div>
+            <button class="submit-order" onclick="submitOrder()">Đặt món</button>
+        </div>
+    </div>
+
+    <div class="modal" id="confirmationModal">
+        <div class="modal-content">
+            <div class="modal-message" id="modalMessage"></div>
+            <button class="modal-btn" onclick="closeModal()">Đóng</button>
+        </div>
+    </div>
+
+    <script>
+        // Danh sách các món ăn và giá
+        const menuItems = {
+            'appetizer1': { name: 'Gỏi cuốn tôm thịt', price: 45000 },
+            'appetizer2': { name: 'Chả giò', price: 55000 },
+            'appetizer3': { name: 'Salad hải sản', price: 65000 },
+            'main1': { name: 'Phở bò', price: 85000 },
+            'main2': { name: 'Cơm tấm sườn', price: 75000 },
+            'main3': { name: 'Bún chả', price: 70000 },
+            'drink1': { name: 'Nước chanh tươi', price: 25000 },
+            'drink2': { name: 'Sinh tố bơ', price: 35000 },
+            'drink3': { name: 'Cà phê đen', price: 30000 }
+        };
+
+        // Lưu số lượng món ăn
+        const orderQuantities = {};
+        for (const id in menuItems) {
+            orderQuantities[id] = 0;
+        }
+
+        // Lấy số bàn từ URL
+        let tableNumber = '';
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('table')) {
+            tableNumber = urlParams.get('table');
+            document.getElementById('tableInfo').textContent = `Đặt món tại bàn ${tableNumber}`;
+        } else {
+            document.getElementById('tableInfo').textContent = 'Vui lòng quét mã QR tại bàn để bắt đầu';
+        }
+
+        // Thay đổi số lượng món ăn
+        function changeQuantity(itemId, change) {
+            const newQuantity = orderQuantities[itemId] + change;
+            if (newQuantity >= 0) {
+                orderQuantities[itemId] = newQuantity;
+                document.getElementById(`${itemId}-qty`).textContent = newQuantity;
+                updateOrderSummary();
+            }
+        }
+
+        // Cập nhật tóm tắt đơn hàng
+        function updateOrderSummary() {
+            const orderItemsContainer = document.getElementById('orderItems');
+            let html = '';
+            let total = 0;
+            let hasItems = false;
+
+            for (const id in orderQuantities) {
+                const quantity = orderQuantities[id];
+                if (quantity > 0) {
+                    hasItems = true;
+                    const item = menuItems[id];
+                    const subtotal = quantity * item.price;
+                    total += subtotal;
+
+                    html += `
+                        <div class="order-item">
+                            <span>${item.name} x ${quantity}</span>
+                            <span>${formatPrice(subtotal)}</span>
+                        </div>
+                    `;
+                }
+            }
+
+            if (hasItems) {
+                orderItemsContainer.innerHTML = html;
+            } else {
+                orderItemsContainer.innerHTML = '<div class="empty-order">Bạn chưa chọn món nào</div>';
+            }
+
+            document.getElementById('totalAmount').textContent = formatPrice(total);
+        }
+
+        // Định dạng giá thành đơn vị tiền tệ
+        function formatPrice(price) {
+            return price.toLocaleString('vi-VN') + 'đ';
+        }
+
+        // Gửi đơn hàng
+        function submitOrder() {
+            if (!tableNumber) {
+                showModal('Vui lòng quét mã QR tại bàn để đặt món.');
+                return;
+            }
+
+            let hasItems = false;
+            for (const id in orderQuantities) {
+                if (orderQuantities[id] > 0) {
+                    hasItems = true;
+                    break;
+                }
+            }
+
+            if (!hasItems) {
+                showModal('Vui lòng chọn ít nhất một món trước khi đặt.');
+                return;
+            }
+
+            // Tạo đối tượng đơn hàng để gửi đi
+            const order = {
+                tableNumber: tableNumber,
+                items: {},
+                timestamp: new Date().toISOString()
+            };
+
+            for (const id in orderQuantities) {
+                if (orderQuantities[id] > 0) {
+                    order.items[id] = {
+                        name: menuItems[id].name,
+                        price: menuItems[id].price,
+                        quantity: orderQuantities[id]
+                    };
+                }
+            }
+
+            // Trong thực tế, bạn sẽ gửi đơn hàng đến máy chủ
+            // Ở đây chúng ta chỉ giả lập thành công
+            console.log('Đơn hàng đã gửi:', order);
+
+            // Hiển thị thông báo xác nhận
+            showModal(`Đơn hàng của bạn đã được gửi đến nhà bếp!<br>Bàn số: ${tableNumber}`);
+
+            // Reset đơn hàng
+            for (const id in orderQuantities) {
+                orderQuantities[id] = 0;
+                document.getElementById(`${id}-qty`).textContent = '0';
+            }
+            updateOrderSummary();
+        }
+
+        // Hiển thị modal
+        function showModal(message) {
+            document.getElementById('modalMessage').innerHTML = message;
+            document.getElementById('confirmationModal').style.display = 'block';
+        }
+
+        // Đóng modal
+        function closeModal() {
+            document.getElementById('confirmationModal').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
