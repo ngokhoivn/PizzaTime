@@ -131,19 +131,26 @@ async function sendTelegramMessage(text) {
 }
 
 async function sendToGoogleSheets(orderData) {
-    const url = 'YOUR_APPS_SCRIPT_URL'; // Replace with your Google Apps Script web app URL
-    const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(orderData)
-    });
-
-    if (!response.ok) {
-        throw new Error('Failed to send to Google Sheets');
+    const url = 'http://localhost:3000/proxy/google-sheets';
+    try {
+        console.log('Dữ liệu gửi:', JSON.stringify(orderData));
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(orderData),
+        });
+        const result = await response.json();
+        console.log('Phản hồi từ Google Sheets:', result);
+        if (result.status === 'error') {
+            throw new Error(result.message);
+        }
+        return result;
+    } catch (error) {
+        console.error('Lỗi khi gửi đến Google Sheets:', error);
+        throw error;
     }
-    return await response.text();
 }
 
 function resetCart() {
