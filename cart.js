@@ -74,11 +74,12 @@ async function submitOrder() {
                 price: item.price,
                 total: item.price * item.quantity
             })),
+            orderItemsString: cart.map(item => `${item.name} (Size ${item.size}) x ${item.quantity}`).join(', '),
             total,
             orderTime: new Date().toLocaleString('vi-VN')
         };
 
-        // Send to Telegram
+        // Gửi đến Telegram
         const telegramMessage =
             `<b>🍕 ĐƠN HÀNG MỚI 🍕</b>\n` +
             `<b>Bàn số:</b> ${tableNumber}\n` +
@@ -88,11 +89,10 @@ async function submitOrder() {
             `<b>⏰ Thời gian:</b> ${orderData.orderTime}`;
         await sendTelegramMessage(telegramMessage);
 
-        // Send to Google Sheets
-        await sendToGoogleSheets(orderData);
+        // Gửi đến Zapier
+        await sendToZapier(orderData);
 
-        showModal(`Đơn hàng của bạn đã được gửi đến nhà bếp!
-<br>Bàn số: ${tableNumber}`);
+        showModal(`Đơn hàng của bạn đã được gửi đến nhà bếp!<br>Bàn số: ${tableNumber}`);
         resetCart();
         closeCartModal();
 
@@ -130,22 +130,28 @@ async function sendTelegramMessage(text) {
     return data;
 }
 
-async function sendToGoogleSheets(orderData) {
-    return new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
-
-        window[callbackName] = function (data) {
-            delete window[callbackName];
-            document.body.removeChild(script);
-            resolve(data);
-        };
-
-        const url = `https://script.google.com/macros/s/AKfycbyP_Q1u_cI85pDUCYubGikyYxlRV2VZouSCvIulzPFL9FieOArNmb42N4hwBvkesRhc/exec?callback=${callbackName}`;
-        script.src = url;
-        script.onerror = reject;
-        document.body.appendChild(script);
-    });
+async function sendToZapier(orderData) {
+    const webhookUrl = 'https://hooks.zapier.com/hooks/catch/22729439/2pa9exx/';
+    try {
+        const response = await fetch(webhookUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(orderData),
+        });
+        if (!response.ok) {
+            throw new Error(`Lỗi khi gửi dữ liệu đến Zapier: ${response.statusText}`);
+        }
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            return await response.json();
+        }
+        return { status: 'success' };
+    } catch (error) {
+        console.error('Lỗi Zapier:', error);
+        throw error;
+    }
 }
 
 function resetCart() {
