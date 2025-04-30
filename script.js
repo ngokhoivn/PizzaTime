@@ -34,12 +34,9 @@ const pizzaMenu = [
     }
 ];
 
-// Số lượng bàn
-const tables = 16;
-
 // Khởi tạo giỏ hàng trống
 let cart = [];
-let selectedTable = null;
+let tableNumber = null;
 
 // Format giá tiền
 function formatPrice(price) {
@@ -49,67 +46,14 @@ function formatPrice(price) {
 // Lấy số bàn từ URL và kiểm tra hợp lệ
 function getTableFromURL() {
     const urlParams = new URLSearchParams(window.location.search);
-    const validTables = Array.from({ length: tables }, (_, i) => (i + 1).toString());
+    const validTables = Array.from({ length: 16 }, (_, i) => (i + 1).toString());
     if (urlParams.has('table') && validTables.includes(urlParams.get('table'))) {
-        selectedTable = parseInt(urlParams.get('table'));
-        document.getElementById('tableInfo').textContent = `Đặt món tại bàn ${selectedTable}`;
+        tableNumber = parseInt(urlParams.get('table'));
+        document.getElementById('tableInfo').textContent = `Đặt món tại bàn ${tableNumber}`;
     } else {
+        tableNumber = null;
         document.getElementById('tableInfo').textContent = 'Số bàn không hợp lệ. Vui lòng quét mã QR tại bàn.';
     }
-}
-
-// Render danh sách bàn
-function renderTables() {
-    const tableContainer = document.createElement('div');
-    tableContainer.id = 'table-container';
-    tableContainer.style.display = 'flex';
-    tableContainer.style.flexWrap = 'wrap';
-    tableContainer.style.gap = '10px';
-    tableContainer.style.justifyContent = 'center';
-    tableContainer.style.marginBottom = '20px';
-
-    for (let i = 1; i <= tables; i++) {
-        const tableBtn = document.createElement('button');
-        tableBtn.className = 'table-btn';
-        tableBtn.textContent = `Bàn ${i}`;
-        tableBtn.setAttribute('data-table', i);
-        tableBtn.style.padding = '10px 20px';
-        tableBtn.style.border = '1px solid #4CAF50';
-        tableBtn.style.borderRadius = '5px';
-        tableBtn.style.backgroundColor = selectedTable === i ? '#4CAF50' : '#fff';
-        tableBtn.style.color = selectedTable === i ? '#fff' : '#333';
-        tableBtn.style.cursor = 'pointer';
-
-        tableBtn.addEventListener('click', function () {
-            const tableNumber = parseInt(this.getAttribute('data-table'));
-            selectTable(tableNumber);
-        });
-
-        tableContainer.appendChild(tableBtn);
-    }
-
-    const tableInfo = document.getElementById('tableInfo');
-    tableInfo.parentNode.insertBefore(tableContainer, tableInfo.nextSibling);
-}
-
-// Chọn bàn
-function selectTable(tableNumber) {
-    selectedTable = tableNumber;
-    document.getElementById('tableInfo').textContent = `Đặt món tại bàn ${selectedTable}`;
-
-    // Cập nhật UI
-    document.querySelectorAll('.table-btn').forEach(btn => {
-        if (parseInt(btn.getAttribute('data-table')) === tableNumber) {
-            btn.style.backgroundColor = '#4CAF50';
-            btn.style.color = '#fff';
-        } else {
-            btn.style.backgroundColor = '#fff';
-            btn.style.color = '#333';
-        }
-    });
-
-    // Enable nút đặt hàng nếu có món trong giỏ
-    updateOrderButton();
 }
 
 // Render danh sách pizza
@@ -212,6 +156,7 @@ function addToCart(pizza, size) {
         cart.push(cartItem);
     }
 
+    updateCartBadge();
     renderCart();
     updateOrderButton();
 }
@@ -227,9 +172,18 @@ function removeFromCart(pizzaId, size) {
             cart.splice(itemIndex, 1);
         }
 
+        updateCartBadge();
         renderCart();
         updateOrderButton();
     }
+}
+
+// Cập nhật số lượng món trên icon giỏ hàng
+function updateCartBadge() {
+    const badgeElement = document.getElementById('cart-badge');
+    const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+    badgeElement.textContent = totalItems;
+    badgeElement.style.display = totalItems > 0 ? 'inline' : 'none';
 }
 
 // Render giỏ hàng
@@ -265,7 +219,7 @@ function renderCart() {
 // Cập nhật trạng thái nút đặt hàng
 function updateOrderButton() {
     const orderBtn = document.querySelector('.submit-order');
-    if (cart.length > 0 && selectedTable !== null) {
+    if (cart.length > 0 && tableNumber !== null) {
         orderBtn.disabled = false;
     } else {
         orderBtn.disabled = true;
@@ -279,8 +233,8 @@ async function submitOrder() {
     orderBtn.textContent = 'Đang xử lý...';
 
     try {
-        if (!selectedTable) {
-            showModal('Vui lòng chọn bàn trước khi đặt món.');
+        if (!tableNumber) {
+            showModal('Vui lòng quét mã QR tại bàn để đặt món.');
             return;
         }
 
@@ -298,7 +252,7 @@ async function submitOrder() {
 
         // Dữ liệu đơn hàng
         const orderData = {
-            tableNumber: selectedTable,
+            tableNumber: tableNumber,
             orderItems: cart.map(item => ({
                 name: item.name,
                 size: item.size,
@@ -313,7 +267,7 @@ async function submitOrder() {
         // Gửi đến Telegram
         const telegramMessage =
             `<b>🍕 ĐƠN HÀNG MỚI 🍕</b>\n` +
-            `<b>Bàn số:</b> ${selectedTable}\n` +
+            `<b>Bàn số:</b> ${tableNumber}\n` +
             `<b>📋 CHI TIẾT ĐƠN HÀNG:</b>\n` +
             `<pre>${formattedOrder}</pre>\n` +
             `<b>💰 TỔNG CỘNG:</b> <u>${formatPrice(total)}</u>\n` +
@@ -322,7 +276,7 @@ async function submitOrder() {
         await sendTelegramMessage(telegramMessage);
 
         // Hiển thị xác nhận
-        showModal(`Đơn hàng của bạn đã được gửi đến nhà bếp!<br>Bàn số: ${selectedTable}`);
+        showModal(`Đơn hàng của bạn đã được gửi đến nhà bếp!<br>Bàn số: ${tableNumber}`);
 
         // Reset giỏ hàng
         resetCart();
@@ -369,6 +323,7 @@ async function sendTelegramMessage(text) {
 // Reset giỏ hàng
 function resetCart() {
     cart = [];
+    updateCartBadge();
     renderCart();
 
     // Reset số lượng hiển thị trên menu
@@ -378,6 +333,12 @@ function resetCart() {
 
     // Disable nút đặt hàng
     updateOrderButton();
+}
+
+// Toggle giỏ hàng
+function toggleCart() {
+    const orderSummary = document.getElementById('orderSummary');
+    orderSummary.classList.toggle('active');
 }
 
 // Hiển thị modal
@@ -394,11 +355,12 @@ function closeModal() {
 // Khởi tạo trang
 document.addEventListener('DOMContentLoaded', function () {
     getTableFromURL();
-    renderTables();
     renderMenu();
     renderCart();
+    updateCartBadge();
     updateOrderButton();
 
-    // Gắn sự kiện cho nút đặt hàng
+    // Gắn sự kiện cho nút đặt hàng và icon giỏ hàng
     document.querySelector('.submit-order').addEventListener('click', submitOrder);
+    document.getElementById('cart-icon').addEventListener('click', toggleCart);
 });
