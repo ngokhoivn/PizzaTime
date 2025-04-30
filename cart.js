@@ -131,18 +131,19 @@ async function sendTelegramMessage(text) {
 }
 
 async function sendToGoogleSheets(orderData) {
-    const url = 'http://localhost:3000/proxy/google-sheets';
+    const url = 'https://script.google.com/macros/s/AKfycbyP_Q1u_cI85pDUCYubGikyYxlRV2VZouSCvIulzPFL9FieOArNmb42N4hwBvkesRhc/exec';
     try {
-        console.log('Dữ liệu gửi:', JSON.stringify(orderData));
         const response = await fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(orderData),
+            body: JSON.stringify({
+                ...orderData,
+                token: "ngokhoivn123!@#" // Phải giống với token trong Apps Script
+            }),
         });
         const result = await response.json();
-        console.log('Phản hồi từ Google Sheets:', result);
         if (result.status === 'error') {
             throw new Error(result.message);
         }
