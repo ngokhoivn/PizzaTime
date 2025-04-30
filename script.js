@@ -1,4 +1,3 @@
-// Dữ liệu pizza
 const pizzaMenu = [
     {
         id: 1,
@@ -34,29 +33,37 @@ const pizzaMenu = [
     }
 ];
 
-// Khởi tạo giỏ hàng trống
 let cart = [];
 let tableNumber = null;
 
-// Format giá tiền
 function formatPrice(price) {
     return new Intl.NumberFormat('vi-VN').format(price) + ' ₫';
 }
 
-// Lấy số bàn từ URL và kiểm tra hợp lệ
 function getTableFromURL() {
     const urlParams = new URLSearchParams(window.location.search);
     const validTables = Array.from({ length: 16 }, (_, i) => (i + 1).toString());
     if (urlParams.has('table') && validTables.includes(urlParams.get('table'))) {
         tableNumber = parseInt(urlParams.get('table'));
+        localStorage.setItem('tableNumber', tableNumber);
         document.getElementById('tableInfo').textContent = `Đặt món tại bàn ${tableNumber}`;
     } else {
-        tableNumber = null;
-        document.getElementById('tableInfo').textContent = 'Số bàn không hợp lệ. Vui lòng quét mã QR tại bàn.';
+        tableNumber = parseInt(localStorage.getItem('tableNumber')) || null;
+        document.getElementById('tableInfo').textContent = tableNumber
+            ? `Đặt món tại bàn ${tableNumber}`
+            : 'Số bàn không hợp lệ. Vui lòng quét mã QR tại bàn.';
     }
 }
 
-// Render danh sách pizza
+function loadCart() {
+    const storedCart = localStorage.getItem('cart');
+    cart = storedCart ? JSON.parse(storedCart) : [];
+}
+
+function saveCart() {
+    localStorage.setItem('cart', JSON.stringify(cart));
+}
+
 function renderMenu() {
     const menuContainer = document.createElement('div');
     menuContainer.id = 'menu-container';
@@ -72,6 +79,9 @@ function renderMenu() {
         pizzaCard.style.padding = '15px';
         pizzaCard.style.boxShadow = '0 2px 5px rgba(0,0,0,0.1)';
 
+        const qtyL = cart.find(item => item.pizzaId === pizza.id && item.size === 'L')?.quantity || 0;
+        const qtyS = cart.find(item => item.pizzaId === pizza.id && item.size === 'S')?.quantity || 0;
+
         pizzaCard.innerHTML = `
             <div class="pizza-image" style="margin-bottom: 10px;">
                 <img src="${pizza.image}" alt="${pizza.name}" style="width: 100%; border-radius: 8px;">
@@ -84,7 +94,7 @@ function renderMenu() {
                         <div class="size-label">Size L <span class="size-price">${formatPrice(pizza.priceL)}</span></div>
                         <div class="quantity-control" style="display: flex; align-items: center;">
                             <button class="quantity-btn" data-pizza-id="${pizza.id}" data-size="L" data-action="decrease" style="width: 30px; height: 30px; border-radius: 50%; border: none; background-color: #ddd; cursor: pointer;">-</button>
-                            <span class="quantity-value" id="qty-${pizza.id}-L" style="margin: 0 10px; font-weight: bold;">0</span>
+                            <span class="quantity-value" id="qty-${pizza.id}-L" style="margin: 0 10px; font-weight: bold;">${qtyL}</span>
                             <button class="quantity-btn" data-pizza-id="${pizza.id}" data-size="L" data-action="increase" style="width: 30px; height: 30px; border-radius: 50%; border: none; background-color: #ddd; cursor: pointer;">+</button>
                         </div>
                     </div>
@@ -92,7 +102,7 @@ function renderMenu() {
                         <div class="size-label">Size S <span class="size-price">${formatPrice(pizza.priceS)}</span></div>
                         <div class="quantity-control" style="display: flex; align-items: center;">
                             <button class="quantity-btn" data-pizza-id="${pizza.id}" data-size="S" data-action="decrease" style="width: 30px; height: 30px; border-radius: 50%; border: none; background-color: #ddd; cursor: pointer;">-</button>
-                            <span class="quantity-value" id="qty-${pizza.id}-S" style="margin: 0 10px; font-weight: bold;">0</span>
+                            <span class="quantity-value" id="qty-${pizza.id}-S" style="margin: 0 10px; font-weight: bold;">${qtyS}</span>
                             <button class="quantity-btn" data-pizza-id="${pizza.id}" data-size="S" data-action="increase" style="width: 30px; height: 30px; border-radius: 50%; border: none; background-color: #ddd; cursor: pointer;">+</button>
                         </div>
                     </div>
@@ -103,25 +113,23 @@ function renderMenu() {
         menuContainer.appendChild(pizzaCard);
     });
 
-    // Thay thế menu cũ trong QuetMaQr.html
-    const menuSections = document.querySelectorAll('.menu-section');
-    menuSections.forEach(section => section.remove());
-    const orderSummary = document.getElementById('orderSummary');
-    orderSummary.parentNode.insertBefore(menuContainer, orderSummary);
+    const existingContainer = document.getElementById('menu-container');
+    if (existingContainer) {
+        existingContainer.replaceWith(menuContainer);
+    } else {
+        document.querySelector('.container').appendChild(menuContainer);
+    }
 
-    // Thêm event listener cho các nút tăng giảm số lượng
     document.querySelectorAll('.quantity-btn').forEach(button => {
         button.addEventListener('click', function () {
             const pizzaId = parseInt(this.getAttribute('data-pizza-id'));
             const size = this.getAttribute('data-size');
             const action = this.getAttribute('data-action');
-
             updateQuantity(pizzaId, size, action);
         });
     });
 }
 
-// Cập nhật số lượng pizza
 function updateQuantity(pizzaId, size, action) {
     const pizza = pizzaMenu.find(p => p.id === pizzaId);
     const quantityElement = document.getElementById(`qty-${pizzaId}-${size}`);
@@ -138,7 +146,6 @@ function updateQuantity(pizzaId, size, action) {
     quantityElement.textContent = currentQty;
 }
 
-// Thêm pizza vào giỏ hàng
 function addToCart(pizza, size) {
     const existingItem = cart.find(item => item.pizzaId === pizza.id && item.size === size);
 
@@ -156,12 +163,10 @@ function addToCart(pizza, size) {
         cart.push(cartItem);
     }
 
+    saveCart();
     updateCartBadge();
-    renderCart();
-    updateOrderButton();
 }
 
-// Xóa pizza khỏi giỏ hàng
 function removeFromCart(pizzaId, size) {
     const itemIndex = cart.findIndex(item => item.pizzaId === pizzaId && item.size === size);
 
@@ -172,28 +177,31 @@ function removeFromCart(pizzaId, size) {
             cart.splice(itemIndex, 1);
         }
 
+        saveCart();
         updateCartBadge();
-        renderCart();
-        updateOrderButton();
     }
 }
 
-// Cập nhật số lượng món trên icon giỏ hàng
 function updateCartBadge() {
     const badgeElement = document.getElementById('cart-badge');
-    const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-    badgeElement.textContent = totalItems;
-    badgeElement.style.display = totalItems > 0 ? 'inline' : 'none';
+    if (badgeElement) {
+        const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+        badgeElement.textContent = totalItems;
+        badgeElement.style.display = totalItems > 0 ? 'inline' : 'none';
+    }
 }
 
-// Render giỏ hàng
 function renderCart() {
     const orderItemsContainer = document.getElementById('orderItems');
     const totalElement = document.getElementById('totalAmount');
+    const orderBtn = document.querySelector('.submit-order');
+
+    if (!orderItemsContainer || !totalElement || !orderBtn) return;
 
     if (cart.length === 0) {
         orderItemsContainer.innerHTML = '<div class="empty-order">Giỏ hàng trống. Vui lòng chọn pizza!</div>';
         totalElement.textContent = formatPrice(0);
+        orderBtn.disabled = true;
         return;
     }
 
@@ -214,19 +222,9 @@ function renderCart() {
 
     orderItemsContainer.innerHTML = cartHTML;
     totalElement.textContent = formatPrice(total);
+    orderBtn.disabled = !tableNumber;
 }
 
-// Cập nhật trạng thái nút đặt hàng
-function updateOrderButton() {
-    const orderBtn = document.querySelector('.submit-order');
-    if (cart.length > 0 && tableNumber !== null) {
-        orderBtn.disabled = false;
-    } else {
-        orderBtn.disabled = true;
-    }
-}
-
-// Xử lý đặt hàng
 async function submitOrder() {
     const orderBtn = document.querySelector('.submit-order');
     orderBtn.disabled = true;
@@ -243,14 +241,12 @@ async function submitOrder() {
             return;
         }
 
-        // Tạo chi tiết đơn hàng định dạng đẹp
         const formattedOrder = cart.map(item =>
             `- ${item.name} (Size ${item.size}) x ${item.quantity}: ${formatPrice(item.price * item.quantity)}`
         ).join('\n');
 
         const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-        // Dữ liệu đơn hàng
         const orderData = {
             tableNumber: tableNumber,
             orderItems: cart.map(item => ({
@@ -264,7 +260,7 @@ async function submitOrder() {
             orderTime: new Date().toLocaleString('vi-VN')
         };
 
-        // Gửi đến Telegram
+        // Send to Telegram
         const telegramMessage =
             `<b>🍕 ĐƠN HÀNG MỚI 🍕</b>\n` +
             `<b>Bàn số:</b> ${tableNumber}\n` +
@@ -272,13 +268,12 @@ async function submitOrder() {
             `<pre>${formattedOrder}</pre>\n` +
             `<b>💰 TỔNG CỘNG:</b> <u>${formatPrice(total)}</u>\n` +
             `<b>⏰ Thời gian:</b> ${orderData.orderTime}`;
-
         await sendTelegramMessage(telegramMessage);
 
-        // Hiển thị xác nhận
-        showModal(`Đơn hàng của bạn đã được gửi đến nhà bếp!<br>Bàn số: ${tableNumber}`);
+        // Send to Google Sheets
+        await sendToGoogleSheets(orderData);
 
-        // Reset giỏ hàng
+        showModal(`Đơn hàng của bạn đã được gửi đến nhà bếp!<br>Bàn số: ${tableNumber}`);
         resetCart();
 
     } catch (error) {
@@ -290,77 +285,84 @@ async function submitOrder() {
     }
 }
 
-// Gửi tin nhắn Telegram
 async function sendTelegramMessage(text) {
+    // TODO: Move to backend for security
     const token = "7945639869:AAFHxGQiBZVEGp2LCHUdCy82ffsJaLfRkNA";
     const chatId = "-1002560521024";
     const url = `https://api.telegram.org/bot${token}/sendMessage`;
 
-    try {
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                chat_id: chatId,
-                text: text,
-                parse_mode: 'HTML'
-            })
-        });
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            chat_id: chatId,
+            text: text,
+            parse_mode: 'HTML'
+        })
+    });
 
-        const data = await response.json();
-        if (!data.ok) {
-            throw new Error(data.description || 'Lỗi không xác định từ Telegram');
-        }
-        return data;
-    } catch (error) {
-        console.error("Lỗi gửi Telegram:", error);
-        throw error;
+    const data = await response.json();
+    if (!data.ok) {
+        throw new Error(data.description || 'Lỗi không xác định từ Telegram');
     }
+    return data;
 }
 
-// Reset giỏ hàng
+async function sendToGoogleSheets(orderData) {
+    const url = 'YOUR_APPS_SCRIPT_URL'; // Replace with your Google Apps Script web app URL
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(orderData)
+    });
+
+    if (!response.ok) {
+        throw new Error('Failed to send to Google Sheets');
+    }
+    return await response.text();
+}
+
 function resetCart() {
     cart = [];
+    saveCart();
     updateCartBadge();
     renderCart();
 
-    // Reset số lượng hiển thị trên menu
     document.querySelectorAll('.quantity-value').forEach(el => {
         el.textContent = '0';
     });
-
-    // Disable nút đặt hàng
-    updateOrderButton();
 }
 
-// Toggle giỏ hàng
-function toggleCart() {
-    const orderSummary = document.getElementById('orderSummary');
-    orderSummary.classList.toggle('active');
+function openCart() {
+    window.open(`cart.html?table=${tableNumber}`, '_blank');
 }
 
-// Hiển thị modal
 function showModal(message) {
+    const modal = document.getElementById('confirmationModal');
     document.getElementById('modalMessage').innerHTML = message;
-    document.getElementById('confirmationModal').style.display = 'block';
+    modal.style.display = 'flex';
 }
 
-// Đóng modal
 function closeModal() {
-    document.getElementById('confirmationModal').style.display = 'none';
+    const modal = document.getElementById('confirmationModal');
+    modal.style.display = 'none';
 }
 
-// Khởi tạo trang
 document.addEventListener('DOMContentLoaded', function () {
+    loadCart();
     getTableFromURL();
-    renderMenu();
-    renderCart();
-    updateCartBadge();
-    updateOrderButton();
 
-    // Gắn sự kiện cho nút đặt hàng và icon giỏ hàng
-    document.querySelector('.submit-order').addEventListener('click', submitOrder);
-    document.getElementById('cart-icon').addEventListener('click', toggleCart);
+    if (window.location.pathname.includes('QuetMaQr.html')) {
+        renderMenu();
+        updateCartBadge();
+        document.getElementById('cart-icon').addEventListener('click', openCart);
+    } else if (window.location.pathname.includes('cart.html')) {
+        renderCart();
+        updateCartBadge();
+        document.querySelector('.submit-order').addEventListener('click', submitOrder);
+    }
 });
