@@ -131,27 +131,21 @@ async function sendTelegramMessage(text) {
 }
 
 async function sendToGoogleSheets(orderData) {
-    const url = 'https://script.google.com/macros/s/AKfycbyP_Q1u_cI85pDUCYubGikyYxlRV2VZouSCvIulzPFL9FieOArNmb42N4hwBvkesRhc/exec';
-    try {
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                ...orderData,
-                token: "ngokhoivn123!@#" // Phải giống với token trong Apps Script
-            }),
-        });
-        const result = await response.json();
-        if (result.status === 'error') {
-            throw new Error(result.message);
-        }
-        return result;
-    } catch (error) {
-        console.error('Lỗi khi gửi đến Google Sheets:', error);
-        throw error;
-    }
+    return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
+
+        window[callbackName] = function (data) {
+            delete window[callbackName];
+            document.body.removeChild(script);
+            resolve(data);
+        };
+
+        const url = `https://script.google.com/macros/s/AKfycbyP_Q1u_cI85pDUCYubGikyYxlRV2VZouSCvIulzPFL9FieOArNmb42N4hwBvkesRhc/exec?callback=${callbackName}`;
+        script.src = url;
+        script.onerror = reject;
+        document.body.appendChild(script);
+    });
 }
 
 function resetCart() {
